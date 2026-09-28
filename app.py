@@ -1,3 +1,5 @@
+import hmac
+
 import streamlit as st
 import pandas as pd
 
@@ -39,6 +41,34 @@ def initialize_session_state():
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
+
+
+def check_app_password():
+    """Require a password before showing the app or calling the API."""
+    if "APP_PASSWORD" not in st.secrets:
+        st.error("앱 비밀번호가 설정되지 않았습니다.")
+        st.info(".streamlit/secrets.toml에 APP_PASSWORD를 추가해주세요.")
+        st.stop()
+
+    if st.session_state.get("password_correct", False):
+        return
+
+    st.title("🧠 MindLog AI")
+    st.write("비밀번호를 입력하면 앱을 사용할 수 있습니다.")
+
+    password = st.text_input("비밀번호", type="password")
+
+    if st.button("앱 열기", type="primary"):
+        if hmac.compare_digest(
+            password,
+            str(st.secrets["APP_PASSWORD"]),
+        ):
+            st.session_state.password_correct = True
+            st.rerun()
+        else:
+            st.error("비밀번호가 올바르지 않습니다.")
+
+    st.stop()
 
 
 def get_openai_client():
@@ -502,6 +532,7 @@ def main():
         page_title="MindLog AI",
         page_icon="🧠",
     )
+    check_app_password()
     initialize_session_state()
 
     st.title("🧠 MindLog AI")
